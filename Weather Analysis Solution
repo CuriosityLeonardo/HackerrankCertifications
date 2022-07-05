@@ -1,0 +1,35 @@
+With max AS (
+
+SELECT
+	  datepart(month,record_date) AS month_max,
+	  MAX(data_value) AS max_value
+FROM   temperature_records
+GROUP BY datepart(month,record_date)
+-- ORDER BY datepart(month,record_date)
+),
+min AS(
+        SELECT
+			datepart(month,record_date) AS month_min,
+			MIN(data_value) AS min_value
+FROM    temperature_records
+GROUP BY datepart(month,record_date)
+-- ORDER BY datepart(month,record_date)
+),
+  AVG AS(
+	  SELECT
+			datepart(month,record_date) AS month_avg,
+			ROUND(AVG(CAST(data_value AS FLOAT)),0) as avg_value
+FROM   temperature_records
+WHERE  data_type LIKE 'avg'
+GROUP BY datepart(month,record_date), data_type
+-- ORDER BY datepart(month,record_date)
+)
+
+SELECT
+	  month_max,
+	  max_value,
+	  min_value,
+       avg_value
+FROM   max
+JOIN   min ON min.month_min = max.month_max
+JOIN   avg ON avg.month_avg = max.month_max
