@@ -1,0 +1,52 @@
+Alter Table to add a rownumber as primary key:
+
+ALTER TABLE krypto 
+ADD rownumber INT IDENTITY PRIMARY KEY;
+
+
+with difference as (
+
+SELECT
+		*,
+        DATEDIFF(minute,lag(dt) OVER (ORDER BY sender,dt),dt) as difF_minute
+FROM    krypto
+--ORDER BY sender,dt
+  
+)
+,rn as (
+SELECT
+		rownumber
+FROM    difference
+WHERE   rownumber IN(
+  SELECT
+  		 rownumber
+  FROM   krypto
+  WHERE  abs(diff_minute) < 60
+)
+--order by sender,dt
+)
+
+,sequences as ( 
+SELECT 
+		*
+FROM    krypto
+WHERE rownumber IN(
+SELECT 
+		rownumber 
+FROM    rn
+UNION
+SELECT rownumber - 1 as rownumber
+FROM   rn
+ )
+--order by sender,dt
+)
+SELECT 
+       sender,
+       MIN(dt) as Sequence_start,
+       MAX(dt) as Sequence_end,
+       COUNT(rownumber) as transactions_count,
+       SUM(amount) as transactions_sum
+FROM   sequences
+GROUP BY sender
+HAVING SUM(amount) >= 150
+order by sender,MIN(dt),MAX(dt)
