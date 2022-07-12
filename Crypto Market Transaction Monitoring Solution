@@ -1,14 +1,12 @@
-Alter Table to add a rownumber as primary key:
-
-ALTER TABLE krypto 
-ADD rownumber INT IDENTITY PRIMARY KEY;
-
+-- Update 12th of July 2022: I removed the alter table statement and added the rownumber column in the first table 'difference' 
+-- to make it work on hackerrank
 
 with difference as (
 
 SELECT
 		*,
-        DATEDIFF(minute,lag(dt) OVER (ORDER BY sender,dt),dt) as difF_minute
+        DATEDIFF(minute,lag(dt) OVER (ORDER BY sender,dt),dt) as difF_minute,
+  		ROW_NUMBER() OVER(ORDER BY sender,dt) as rownumber
 FROM    krypto
 --ORDER BY sender,dt
   
@@ -29,7 +27,7 @@ WHERE   rownumber IN(
 ,sequences as ( 
 SELECT 
 		*
-FROM    krypto
+FROM    difference
 WHERE rownumber IN(
 SELECT 
 		rownumber 
