@@ -1,3 +1,5 @@
+-- First longer Solution from the video https://www.youtube.com/watch?v=IxIO_I9vShE&ab_channel=TheCodingMentor
+
 With max AS (
 
 SELECT
@@ -33,3 +35,14 @@ SELECT
 FROM   max
 JOIN   min ON min.month_min = max.month_max
 JOIN   avg ON avg.month_avg = max.month_max
+
+
+-- second shorter Solution from Ivan Jonathan:
+
+SELECT
+    datepart(month,record_date) AS month,
+    MAX(case when data_type = 'max' then data_value else null end) AS max_value,
+    MIN(case when data_type = 'min' then data_value else null end) AS min_value,
+    ROUND(AVG(case when data_type = 'avg' then CAST(data_value as FLOAt) else null end),0) as avg_value
+from temperature_records
+group by datepart(month,record_date);
