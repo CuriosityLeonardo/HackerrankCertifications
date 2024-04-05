@@ -1,34 +1,36 @@
-WITH quarterly_volume as (
+/*
+Enter your query below.
+Please append a semicolon ";" at the end of the query
+*/
 
-SELECT 
-        algorithm,
-        SUM(volume) as volume,
-        datepart(quarter,dt) as quarters
-        
-FROM    coins c
-JOIN    transactions t ON t.coin_code = c.code
-WHERE   datepart(year,dt) = 2020
-GROUP BY algorithm, datepart(quarter,dt)
-
+with quarterly_vol as (
+    select algorithm,
+    sum(volume) as volume,
+    quarter(dt) as quarters
+    from coins c
+    join transactions t on t.coin_code= c.code
+    where year(dt) = 2020
+    group by algorithm, quarter(dt)
 )
-SELECT
-       c.algorithm,
-       qv1.volume as transactions_Q1,
-       qv2.volume as transactions_Q2,
-       qv3.volume as transactions_Q3,
-       qv4.volume as transactions_Q4
-FROM   coins c 
-LEFT JOIN quarterly_volume qv1 
-on c.algorithm = qv1.algorithm
-AND qv1.quarters = 1  
-LEFT JOIN quarterly_volume qv2 
-on c.algorithm = qv2.algorithm
-AND qv2.quarters = 2  
-LEFT JOIN quarterly_volume qv3 
-on c.algorithm = qv3.algorithm
-AND qv3.quarters = 3
-LEFT JOIN quarterly_volume qv4 
-on c.algorithm = qv4.algorithm
-AND qv4.quarters = 4
-WHERE c.code NOT LIKE 'DOGE'
-ORDER BY algorithm
+   select 
+        c.algorithm,
+        qv1.volume as transactions_Q1,
+        qv2.volume as transactions_Q2,
+        qv3.volume as transactions_Q3,
+        qv4.volume as transactions_Q4
+    from coins c
+    left join quarterly_vol as qv1
+    on c.algorithm=qv1.algorithm and qv1.quarters=1
+    left join quarterly_vol as qv2
+     on c.algorithm=qv2.algorithm and qv2.quarters=2
+     left join quarterly_vol as qv3
+     on c.algorithm=qv3.algorithm and qv3.quarters=3
+     left join quarterly_vol as qv4
+     on c.algorithm=qv4.algorithm and qv4.quarters=4
+     where c.code not like 'DOGE'
+     order by algorithm
+     
+
+
+
+
