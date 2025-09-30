@@ -1,50 +1,51 @@
--- Update 12th of July 2022: I removed the alter table statement and added the rownumber column in the first table 'difference' 
--- to make it work on hackerrank
+-- Use Common Table Expressions (CTEs) for a clear, step-by-step approach.
+WITH time_differences AS (
+    -- Step 1: Calculate the time difference in SECONDS between consecutive transactions
+    -- for each sender. Using seconds is more precise than minutes.
+    SELECT
+        sender,
+        amount,
+        CAST(dt AS DATETIME) AS transaction_time,
+        -- Use TIMESTAMPDIFF with SECOND to avoid truncation issues.
+        TIMESTAMPDIFF(
+            SECOND,
+            LAG(CAST(dt AS DATETIME), 1) OVER (PARTITION BY sender ORDER BY CAST(dt AS DATETIME)),
+            CAST(dt AS DATETIME)
+        ) AS seconds_since_last
+    FROM
+        transactions
+),
 
-with difference as (
+sequence_identifier AS (
+    -- Step 2: Identify each new sequence. A sequence starts when the time gap
+    -- is more than 3600 seconds (1 hour).
+    SELECT
+        sender,
+        amount,
+        transaction_time,
+        -- Create a unique 'sequence_id' for each group using a running sum.
+        SUM(CASE WHEN seconds_since_last > 3600 OR seconds_since_last IS NULL THEN 1 ELSE 0 END)
+            OVER (PARTITION BY sender ORDER BY transaction_time) AS sequence_id
+    FROM
+        time_differences
+)
 
+-- Step 3: Group transactions by their sequence_id and calculate the required aggregates.
 SELECT
-		*,
-        DATEDIFF(minute,lag(dt) OVER (ORDER BY sender,dt),dt) as difF_minute,
-  		ROW_NUMBER() OVER(ORDER BY sender,dt) as rownumber
-FROM    krypto
---ORDER BY sender,dt
-  
-)
-,rn as (
-SELECT
-		rownumber
-FROM    difference
-WHERE   rownumber IN(
-  SELECT
-  		 rownumber
-  FROM   krypto
-  WHERE  abs(diff_minute) < 60
-)
---order by sender,dt
-)
-
-,sequences as ( 
-SELECT 
-		*
-FROM    difference
-WHERE rownumber IN(
-SELECT 
-		rownumber 
-FROM    rn
-UNION
-SELECT rownumber - 1 as rownumber
-FROM   rn
- )
---order by sender,dt
-)
-SELECT 
-       sender,
-       MIN(dt) as Sequence_start,
-       MAX(dt) as Sequence_end,
-       COUNT(rownumber) as transactions_count,
-       SUM(amount) as transactions_sum
-FROM   sequences
-GROUP BY sender
-HAVING SUM(amount) >= 150
-order by sender,MIN(dt),MAX(dt)
+    sender,
+    MIN(transaction_time) AS sequence_start,
+    MAX(transaction_time) AS sequence_end,
+    COUNT(*) AS transactions_count,
+    SUM(amount) AS transactions_sum
+FROM
+    sequence_identifier
+GROUP BY
+    sender,
+    sequence_id
+HAVING
+    -- Step 4: Apply the two conditions for a sequence to be suspicious.
+    COUNT(*) >= 2 AND SUM(amount) >= 150
+ORDER BY
+    sender,
+    sequence_start,
+    sequence_end;
